@@ -1,0 +1,190 @@
+#Proximos Passos:
+# 1. Base de dados a partir de : https://1000mostcommonwords.com/1000-most-common-portuguese-words/
+# 2. Ler arquivo em Pyhton: https://realpython.com/python-csv/#reading-csv-files-with-csv
+# 3. Fazer analise de erro: % de acerto com relação ao numero de iterações
+# 4. Fazer duas camadas com Pytorch: https://medium.com/coinmonks/create-a-neural-network-in-pytorch-and-make-your-life-simpler-ec5367895199
+# 5. Fazer outra lingua
+import numpy as np
+import csv
+
+num_languages = 2
+
+if num_languages == 3:
+    alphabet = ["-","’","'","a","á","à","ã","â","b","c","ç","d","e","é","è","ê", "f", "g", "h","i","í", "î","j","k","l","m", "n","o", "õ","ó","ô","p", "q","r","s","t","u","ú","ù","û","v","w","x","y","z"]
+if num_languages == 2:
+    alphabet = ["-","’","a","á","à","ã","â","b","c","ç","d","e","é","è","ê", "f", "g", "h","i","í", "j","k","l","m", "n","o", "õ","ó","ô","p", "q","r","s","t","u","ú","ù","û","v","w","x","y","z"]
+words = 'batata cap not juliano'
+labels = [1, 0, 0, 1]
+
+
+def read_files():
+    global words, labels
+    print("Lendo arquivo...")
+    words=''
+    labels = []
+    arq = ""
+    if num_languages == 2:
+        arq = "base_pt_en.csv"
+    if num_languages == 3:
+        arq = "base_pt_en_fr.csv"
+    with open(arq) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                #print("Primeira linha...")
+                line_count += 1
+            else:
+                words += row[0] + ' '
+                labels.append(float(row[1]))
+                line_count += 1
+
+        print(f'Processed {line_count} lines.')
+    #print("Palavras:")
+    #print(words)
+    #print("Rotulos:")
+    #print(labels)
+
+read_files()
+
+splited_words=words.split()
+
+#Encontra o maximo de letras nas palavras se for maior que 50:
+max_word_length = 0
+def find_max_number_letters():
+    global i, max_word_length
+    for i in range(len(splited_words)):
+        if len(splited_words[i]) > max_word_length:
+            max_word_length = len(splited_words[i])
+    print("Max word length ")
+    print(max_word_length)
+max_word_length = 50
+
+find_max_number_letters()
+
+def one_hot_encoding(words):
+    # Creates empty lines for the encoding
+    empty_line = []
+    for i in range(len(alphabet)):
+        empty_line.append(0)
+    global TsIn
+    # Converts the words to one-hot-encoding notation
+    num_words = len(words.split())
+    wordlist = list(words)
+    wordlist.append(' ')
+    space = wordlist.index(' ')
+    TsIn = []
+    # Creating the Matrix of matrix(TsIn)
+    for i in range(num_words):
+        matrix = []
+        for e in range(space):
+            line = []
+            achou = 0
+            for x in range(len(alphabet)):
+                if wordlist[e] == alphabet[x]:
+                    line.append(1)
+                    achou = 1
+                else:
+                    line.append(0)
+            if achou == 0:
+                print("Caracter desconhecido")
+                print(wordlist[e])
+            matrix.append(line)
+        for t in range(len(matrix), max_word_length):
+            matrix.append(empty_line)
+
+        TsIn.append(matrix)
+        for d in range(0, space + 1):
+            if len(wordlist) > 1:
+                del wordlist[0]
+            space = wordlist.index(' ')
+    #print("Matriz 3D em lista:")
+    #print(TsIn)
+    temp = []
+    for i in range(len(TsIn)):
+        line = TsIn[i]
+        temp2 = []
+        for j in range(len(line)):
+            temp2.extend(line[j])
+
+        temp.append(temp2)
+    TsIn = temp
+    #print("Matriz 2D em lista:")
+    #print(TsIn)
+    TsIn = np.array(TsIn)
+    #print("Matriz 2D em array:")
+    #print(TsIn)
+
+
+tsOut = np.array([labels]).T
+sWeights = []
+def training(trainSize):
+    global sWeights, out
+    np.random.seed(1)
+    sWeights = 2 * np.random.random((len(alphabet) * max_word_length, 1)) - 1
+    # distrubuicao uniforme entre 1, -1
+    # [a,b),b<a : a+ b-a * randomSample + a
+    # -1-1 * (
+    for iteration in range(trainSize):
+        if iteration%10 == 0:
+            print(iteration)
+        out = 1 / (1 + np.exp(-(np.dot(TsIn, sWeights))))
+        error_derivative = (tsOut - out) * out * (1 - out)
+        sWeights += np.dot(TsIn.T, error_derivative)
+
+
+def testing():
+    print("** Testando novos valores: **")
+    if num_languages == 2:
+        new_words =("mamãe mommy canela panela caçarola mamão maple walking andança preto black stay morning sabedoria english katchup red troglodita yellow cafeína batata day morning dance limão irmã dança have done however mesa grace andarilho yes nada dancing")
+        right_answers = ['P', 'I', 'P','P','P','P','I','I','P','P','I','I','I','P','I','I','I', 'P', 'I', 'P', 'P', 'I', 'I', 'I', 'P', 'P', 'P', 'I','I','I','P','I','P','I','P','I']
+    if num_languages == 3:
+        new_words = ("ça nous mamãe mommy canela panela caçarola mamão maple walking andança preto black stay morning sabedoria english katchup red troglodita yellow cafeína batata day morning dance limão irmã dança have done however mesa grace andarilho yes nada dancing")
+        right_answers = ['F', 'F', 'P', 'I', 'P', 'P', 'P', 'P', 'I', 'I', 'P', 'P', 'I', 'I', 'I', 'P', 'I', 'I', 'I','P', 'I', 'P', 'P', 'I', 'I', 'I', 'P', 'P', 'P', 'I', 'I', 'I', 'P', 'I', 'P', 'I', 'P', 'I']
+
+    one_hot_encoding(new_words)
+    out = 1 / (1 + np.exp(-(np.dot(TsIn, sWeights))))
+    #print("Matriz de respostas: ")
+    #print(out)
+    print(new_words)
+    print("Resposta certa: ")
+    print(right_answers)
+    final=[]
+    rigths=0
+    wrongs=0
+    for i in range(len(out)):
+        if (num_languages == 3):
+            if out[i] >= 0.66:
+                final.append("P")
+            elif out[i] <= 0.33:
+                final.append("I")
+            else:
+                final.append("F")
+
+        if num_languages == 2:
+            if out[i] > 0.5:
+                final.append("P")
+            else:
+                final.append("I")
+
+        if final[i] == right_answers[i]:
+            rigths += 1
+        else:
+            wrongs += 1
+            print("Errou %d"%(i+1))
+    print("Previsoes: ")
+    print(final)
+    accuracy = rigths/len(out)*100
+    print("Acertos: %4.1f %% "%accuracy)
+
+
+def all():
+    train_size = 200
+    for t in range(190, train_size, 10):
+        one_hot_encoding(words)
+        training(t)
+        #print("Pesos depois do treino: ")
+        #print(sWeights)
+        testing()
+
+all()
